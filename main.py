@@ -122,3 +122,20 @@ async def get_favourite_tracks(user_id: int):
     mydb_conn.close()
     fav_tracks = [{"name": track[1]} for track in tracks]
     return JSONResponse(content={"favourite_tracks": fav_tracks}, status_code=200)
+
+@app.get("/users/{user_id}/favourite_genres")
+async def get_favourite_genres(user_id: int):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    mycursor = mydb_conn.cursor()  
+    mycursor.execute(f"SELECT genres.id, genres.name FROM user_fav_genres JOIN genres ON genres.id = user_fav_genres.genre_id WHERE user_fav_genres.user_id={user_id}")
+    genres = mycursor.fetchall()
+    mydb_conn.commit()
+    mydb_conn.close()
+    fav_genres = [{"name": genre[1]} for genre in genres]
+    return JSONResponse(content={"favourite_genres": fav_genres}, status_code=200)
