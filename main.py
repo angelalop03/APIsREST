@@ -250,3 +250,19 @@ async def add_track_to_playlist(user_id: int, playlist_id: int, request: Request
         mydb_conn.close()
         return JSONResponse(content={"message": "Track not found"}, status_code=404)
     
+
+#Eliminar una cancion de una `playlist`
+@app.delete("/users/{user_id}/playlists/{playlist_id}/tracks/{track_id}")
+async def remove_track_from_playlist(user_id: int, playlist_id: int, track_id: int):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"DELETE FROM playlist_tracks WHERE playlist_id={playlist_id} AND track_id={track_id}")
+    mydb_conn.commit()
+    mydb_conn.close()
+    return JSONResponse(content={"message": "Track removed from playlist successfully"}, status_code=200)
