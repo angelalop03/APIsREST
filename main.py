@@ -51,3 +51,24 @@ async def create_user(request: Request):
     mydb_conn.commit()
     mydb_conn.close()
     return JSONResponse(content={"message": "User created successfully"}, status_code=201)
+
+
+@app.put("/users/{user_id}")
+async def update_user(user_id: int, request: Request):
+    mydb = DatabaseConnection( 
+        host="localhost", 
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+
+    mydb_conn = await mydb.get_connection()
+    request =  await request.json()  
+    name = request['name']
+    email = request['email']
+
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"UPDATE users SET name='{name}', email='{email}' WHERE id={user_id}")
+    mydb_conn.commit()
+    mydb_conn.close()
+    return JSONResponse(content={"message": "User updated successfully"}, status_code=200)
