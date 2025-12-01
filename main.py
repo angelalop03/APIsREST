@@ -206,3 +206,47 @@ async def update_user_playlist(user_id: int, playlist_id: int, request: Request)
     mydb_conn.commit()
     mydb_conn.close()
     return JSONResponse(content={"message": "Playlist updated successfully"}, status_code=200)
+
+#Ver canciones de una `playlist`
+@app.get("/users/{user_id}/playlists/{playlist_id}/tracks")
+async def get_playlist_tracks(user_id: int, playlist_id: int):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"SELECT tracks.id, tracks.name FROM tracks JOIN playlist_tracks ON tracks.id = playlist_tracks.track_id WHERE playlist_tracks.playlist_id = {playlist_id}")
+    tracks = mycursor.fetchall()
+    mydb_conn.close()
+    playlist_tracks = [{"name": track[1]} for track in tracks]
+    return JSONResponse(content={"tracks": playlist_tracks}, status_code=200)
+
+
+#Añadir una cancion a una `playlist`
+@app.post("/users/{user_id}/playlists/{playlist_id}/tracks")
+async def add_track_to_playlist(user_id: int, playlist_id: int, request: Request):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    request =  await request.json()  
+    track_name = request['track_name']
+    mycursor = mydb_conn.cursor(buffered=True)
+    mycursor.execute(f"SELECT id FROM tracks WHERE name='{track_name}'")
+    track = mycursor.fetchone()
+    if track:
+        track_id = track[0]
+        mycursor.execute(f"INSERT INTO playlist_tracks (playlist_id, track_id) VALUES ({playlist_id}, {track_id})")
+        mydb_conn.commit()
+        mydb_conn.close()
+        return JSONResponse(content={"message": "Track added to playlist successfully"}, status_code=201)
+    else:
+        mydb_conn.close()
+        return JSONResponse(content={"message": "Track not found"}, status_code=404)
+    
