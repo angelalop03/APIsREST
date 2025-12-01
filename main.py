@@ -72,3 +72,19 @@ async def update_user(user_id: int, request: Request):
     mydb_conn.commit()
     mydb_conn.close()
     return JSONResponse(content={"message": "User updated successfully"}, status_code=200)
+
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: int):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"DELETE FROM users WHERE id={user_id}")
+    mydb_conn.commit()
+    mydb_conn.close()
+    return JSONResponse(content={"message": "User deleted successfully"}, status_code=200)
+
