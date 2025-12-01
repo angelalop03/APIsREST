@@ -174,3 +174,35 @@ async def create_user_playlist(user_id: int, request: Request):
     mydb_conn.commit()
     mydb_conn.close()
     return JSONResponse(content={"message": "Playlist created successfully"}, status_code=201)
+
+@app.delete("/users/{user_id}/playlists/{playlist_id}")
+async def delete_user_playlist(user_id: int, playlist_id: int):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"DELETE FROM playlists WHERE id={playlist_id} AND user_id={user_id}")
+    mydb_conn.commit()
+    mydb_conn.close()
+    return JSONResponse(content={"message": "Playlist deleted successfully"}, status_code=200)
+
+@app.put("/users/{user_id}/playlists/{playlist_id}")
+async def update_user_playlist(user_id: int, playlist_id: int, request: Request):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    request =  await request.json()  
+    name = request['name']
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"UPDATE playlists SET name='{name}' WHERE id={playlist_id} AND user_id={user_id}")
+    mydb_conn.commit()
+    mydb_conn.close()
+    return JSONResponse(content={"message": "Playlist updated successfully"}, status_code=200)
