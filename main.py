@@ -139,3 +139,38 @@ async def get_favourite_genres(user_id: int):
     mydb_conn.close()
     fav_genres = [{"name": genre[1]} for genre in genres]
     return JSONResponse(content={"favourite_genres": fav_genres}, status_code=200)
+
+
+@app.get("/users/{user_id}/playlists")
+async def get_user_playlists(user_id: int):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"SELECT id, name FROM playlists WHERE user_id={user_id}")
+    playlists = mycursor.fetchall()
+    mydb_conn.commit()
+    mydb_conn.close()
+    user_playlists = [{"name": playlist[1]} for playlist in playlists]
+    return JSONResponse(content={"playlists": user_playlists}, status_code=200)
+
+@app.post("/users/{user_id}/playlists")
+async def create_user_playlist(user_id: int, request: Request):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    request =  await request.json() 
+    name = request['name']
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"INSERT INTO playlists (name, user_id) VALUES ('{name}', {user_id})")
+    mydb_conn.commit()
+    mydb_conn.close()
+    return JSONResponse(content={"message": "Playlist created successfully"}, status_code=201)
