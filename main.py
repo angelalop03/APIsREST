@@ -373,19 +373,34 @@ async def update_user_playlist(user_id: int, playlist_id: int, request: Request)
 #Ver canciones de una `playlist`
 @app.get("/users/{user_id}/playlists/{playlist_id}/tracks")
 async def get_playlist_tracks(user_id: int, playlist_id: int):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mydb_conn = await mydb.get_connection()
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"SELECT tracks.id, tracks.name FROM tracks JOIN playlist_tracks ON tracks.id = playlist_tracks.track_id WHERE playlist_tracks.playlist_id = {playlist_id}")
-    tracks = mycursor.fetchall()
-    mydb_conn.close()
-    playlist_tracks = [{"name": track[1]} for track in tracks]
-    return JSONResponse(content={"tracks": playlist_tracks}, status_code=200)
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(f"SELECT id FROM playlists WHERE id={playlist_id} AND user_id={user_id}")
+        playlist = mycursor.fetchone()
+        if not playlist:
+            return JSONResponse(
+                content={"error": "Playlist not found or not associated with this user"},
+                status_code=403
+            )
+        mycursor.execute(f"SELECT tracks.id, tracks.name FROM tracks JOIN playlist_tracks ON tracks.id = playlist_tracks.track_id WHERE playlist_tracks.playlist_id = {playlist_id}")
+        tracks = mycursor.fetchall()
+        playlist_tracks = [{"name": track[1]} for track in tracks]
+        return JSONResponse(content={"tracks": playlist_tracks}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
 
 
 #Añadir una cancion a una `playlist`
