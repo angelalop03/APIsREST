@@ -67,7 +67,7 @@ async def create_user(request: Request):
 
         body = await request.json()
 
-        # Validación básica
+        
         if "name" not in body or "email" not in body:
             return JSONResponse(
                 content={"error": "Missing required fields: name, email"},
@@ -101,38 +101,64 @@ async def create_user(request: Request):
 
 @app.put("/users/{user_id}")
 async def update_user(user_id: int, request: Request):
-    mydb = DatabaseConnection( 
-        host="localhost", 
-        user="root",
-        password="root",
-        database="apispotify"
-    )
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost", 
+            user="root",
+            password="root",
+            database="apispotify"
+        )
 
-    mydb_conn = await mydb.get_connection()
-    request =  await request.json()  
-    name = request['name']
-    email = request['email']
+        mydb_conn = await mydb.get_connection()
+        request =  await request.json()  
 
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"UPDATE users SET name='{name}', email='{email}' WHERE id={user_id}")
-    mydb_conn.commit()
-    mydb_conn.close()
-    return JSONResponse(content={"message": "User updated successfully"}, status_code=200)
+        if "name" not in request or "email" not in request:
+            return JSONResponse(
+                content={"error": "Missing required fields: name, email"},
+                status_code=400
+            )
+
+        name = request['name']
+        email = request['email']
+
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(f"UPDATE users SET name='{name}', email='{email}' WHERE id={user_id}")
+        mydb_conn.commit()
+        return JSONResponse(content={"message": "User updated successfully"}, status_code=200)
+
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
 
 @app.delete("/users/{user_id}")
 async def delete_user(user_id: int):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mydb_conn = await mydb.get_connection()
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"DELETE FROM users WHERE id={user_id}")
-    mydb_conn.commit()
-    mydb_conn.close()
-    return JSONResponse(content={"message": "User deleted successfully"}, status_code=200)
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(f"DELETE FROM users WHERE id={user_id}")
+        mydb_conn.commit()
+        
+        return JSONResponse(content={"message": "User deleted successfully"}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
 
 
 @app.get("/users/{user_id}/favourite_artists")
