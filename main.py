@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+
+from service.spotify_service import get_spotify_data_directly
 load_dotenv()
 
 from fastapi import FastAPI , Request
@@ -6,6 +8,7 @@ from fastapi.responses import JSONResponse
 import mysql.connector
 from configuration.conections import DatabaseConnection
 import os
+
 
 API_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 API_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
@@ -266,3 +269,29 @@ async def remove_track_from_playlist(user_id: int, playlist_id: int, track_id: i
     mydb_conn.commit()
     mydb_conn.close()
     return JSONResponse(content={"message": "Track removed from playlist successfully"}, status_code=200)
+
+
+##API
+
+@app.get("/artists/{artist_id}")
+async def get_artist(artist_id: int):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"SELECT name FROM artists WHERE id={artist_id}")
+    artist = mycursor.fetchone()
+    artist = artist[0] if artist else ""
+    mydb_conn.commit()
+    mydb_conn.close()
+
+    response = get_spotify_data_directly(artist, 'artist', API_CLIENT_ID, API_CLIENT_SECRET)
+    return JSONResponse(content={"artist_data": response}, status_code=200)
+
+
+  
+
