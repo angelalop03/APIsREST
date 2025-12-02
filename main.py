@@ -293,5 +293,21 @@ async def get_artist(artist_id: int):
     return JSONResponse(content={"artist_data": response}, status_code=200)
 
 
-  
+@app.get("/tracks/{track_id}")
+async def get_track(track_id: int):
+    mydb = DatabaseConnection( 
+        host="localhost",
+        user="root",
+        password="root",
+        database="apispotify"
+    )
+    mydb_conn = await mydb.get_connection()
+    mycursor = mydb_conn.cursor()
+    mycursor.execute(f"SELECT name FROM tracks WHERE id={track_id}")
+    track = mycursor.fetchone()
+    track = track[0] if track else ""
+    mydb_conn.commit()
+    mydb_conn.close()
 
+    response = get_spotify_data_directly(track, 'track', API_CLIENT_ID, API_CLIENT_SECRET)
+    return JSONResponse(content={"track_data": response}, status_code=200)
