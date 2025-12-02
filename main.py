@@ -20,40 +20,83 @@ def root():
     return {"message": "Welcome to my Mini Spotify"}
 
 
+from fastapi.responses import JSONResponse
+
 @app.get("/users")
 def get_users():
-    mydb = mysql.connector.connect(
-        host="localhost", 
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mycursor = mydb.cursor()
-    mycursor.execute("SELECT * FROM users")
-    users = mycursor.fetchall()
-    mydb.close()
-    return {"users": users}
+    try:
+        mydb = mysql.connector.connect(
+            host="localhost", 
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mycursor = mydb.cursor()
+        mycursor.execute("SELECT * FROM users")
+        users = mycursor.fetchall()
+        return JSONResponse(content={"users": users}, status_code=200)
+
+    except mysql.connector.Error as e:
+        return JSONResponse(
+            content={"error": f"Database error: {str(e)}"},
+            status_code=500
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+
+    finally:
+        if 'mydb' in locals() and mydb.is_connected():
+            mydb.close()
+
 
 
 @app.post("/users")
-async def create_user(request: Request): 
-    mydb = DatabaseConnection(          
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
+async def create_user(request: Request):
+    try:
+        mydb = DatabaseConnection(
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
 
-    mydb_conn = await mydb.get_connection()
-    request =  await request.json()  
-    name = request['name']
-    email = request['email']
+        body = await request.json()
 
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"INSERT INTO users (name, email) VALUES ('{name}', '{email}')")
-    mydb_conn.commit()
-    mydb_conn.close()
-    return JSONResponse(content={"message": "User created successfully"}, status_code=201)
+        # Validación básica
+        if "name" not in body or "email" not in body:
+            return JSONResponse(
+                content={"error": "Missing required fields: name, email"},
+                status_code=400
+            )
+
+        name = body["name"]
+        email = body["email"]
+
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(
+            f"INSERT INTO users (name, email) VALUES ('{name}', '{email}')"
+        )
+        mydb_conn.commit()
+
+        return JSONResponse(
+            content={"message": "User created successfully"},
+            status_code=201
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
 
 
 @app.put("/users/{user_id}")
