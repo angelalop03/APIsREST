@@ -406,44 +406,89 @@ async def get_playlist_tracks(user_id: int, playlist_id: int):
 #Añadir una cancion a una `playlist`
 @app.post("/users/{user_id}/playlists/{playlist_id}/tracks")
 async def add_track_to_playlist(user_id: int, playlist_id: int, request: Request):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mydb_conn = await mydb.get_connection()
-    request =  await request.json()  
-    track_name = request['track_name']
-    mycursor = mydb_conn.cursor(buffered=True)
-    mycursor.execute(f"SELECT id FROM tracks WHERE name='{track_name}'")
-    track = mycursor.fetchone()
-    if track:
-        track_id = track[0]
-        mycursor.execute(f"INSERT INTO playlist_tracks (playlist_id, track_id) VALUES ({playlist_id}, {track_id})")
-        mydb_conn.commit()
-        mydb_conn.close()
-        return JSONResponse(content={"message": "Track added to playlist successfully"}, status_code=201)
-    else:
-        mydb_conn.close()
-        return JSONResponse(content={"message": "Track not found"}, status_code=404)
-    
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
+        request =  await request.json()  
+        mycursor = mydb_conn.cursor(buffered=True)
+        if "track_name" not in request:
+            return JSONResponse(
+                content={"error": "Missing required field: track_name"},
+                status_code=400
+            )
+        track_name = request['track_name']
+
+        mycursor.execute(f"SELECT id FROM playlists WHERE id={playlist_id} AND user_id={user_id}")
+        playlist = mycursor.fetchone()
+        if not playlist:
+            return JSONResponse(
+                content={"error": "Playlist not found or not associated with this user"},
+                status_code=403
+            )
+        
+        mycursor.execute(f"SELECT id FROM tracks WHERE name='{track_name}'")
+        track = mycursor.fetchone()
+        if track:
+            track_id = track[0]
+            mycursor.execute(f"INSERT INTO playlist_tracks (playlist_id, track_id) VALUES ({playlist_id}, {track_id})")
+            mydb_conn.commit()
+            mydb_conn.close()
+            return JSONResponse(content={"message": "Track added to playlist successfully"}, status_code=201)
+        else:
+            mydb_conn.close()
+            return JSONResponse(content={"message": "Track not found"}, status_code=404)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
+
 
 #Eliminar una cancion de una `playlist`
 @app.delete("/users/{user_id}/playlists/{playlist_id}/tracks/{track_id}")
 async def remove_track_from_playlist(user_id: int, playlist_id: int, track_id: int):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mydb_conn = await mydb.get_connection()
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"DELETE FROM playlist_tracks WHERE playlist_id={playlist_id} AND track_id={track_id}")
-    mydb_conn.commit()
-    mydb_conn.close()
-    return JSONResponse(content={"message": "Track removed from playlist successfully"}, status_code=200)
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(f"SELECT id FROM playlists WHERE id={playlist_id} AND user_id={user_id}")
+        playlist = mycursor.fetchone()
+        if not playlist:
+            return JSONResponse(
+                content={"error": "Playlist not found or not associated with this user"},
+                status_code=403
+            )
+        mycursor.execute(f"SELECT * FROM playlist_tracks WHERE playlist_id={playlist_id} AND track_id={track_id}")
+        track_in_playlist = mycursor.fetchone()
+        if not track_in_playlist:
+            return JSONResponse(
+                content={"error": "Track not found in the playlist"},
+                status_code=404
+            )
+        mycursor.execute(f"DELETE FROM playlist_tracks WHERE playlist_id={playlist_id} AND track_id={track_id}")
+        mydb_conn.commit()
+        return JSONResponse(content={"message": "Track removed from playlist successfully"}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
 
 
 ##API
