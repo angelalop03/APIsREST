@@ -161,56 +161,84 @@ async def delete_user(user_id: int):
             mydb_conn.close()
 
 
+
 @app.get("/users/{user_id}/favourite_artists")
 async def get_favourite_artists(user_id: int):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mydb_conn = await mydb.get_connection()
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"SELECT artists.id, artists.name FROM user_fav_artists JOIN artists ON artists.id = user_fav_artists.artist_id WHERE user_fav_artists.user_id={user_id}")
-    artists = mycursor.fetchall()
-    mydb_conn.commit()
-    mydb_conn.close()
-    fav_artist = [{"name": artist[1]} for artist in artists]
-    return JSONResponse(content={"favourite_artists": fav_artist}, status_code=200)
+
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(f"SELECT artists.id, artists.name FROM user_fav_artists JOIN artists ON artists.id = user_fav_artists.artist_id WHERE user_fav_artists.user_id={user_id}")
+        artists = mycursor.fetchall()
+        mydb_conn.commit()
+        fav_artist = [{"name": artist[1]} for artist in artists]
+        return JSONResponse(content={"favourite_artists": fav_artist}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
+
+
 
 @app.get("/users/{user_id}/favourite_tracks")
 async def get_favourite_tracks(user_id: int):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )   
-    mydb_conn = await mydb.get_connection()
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"SELECT tracks.id, tracks.name FROM user_fav_tracks JOIN tracks ON tracks.id = user_fav_tracks.track_id WHERE user_fav_tracks.user_id={user_id}")
-    tracks = mycursor.fetchall()
-    mydb_conn.commit()
-    mydb_conn.close()
-    fav_tracks = [{"name": track[1]} for track in tracks]
-    return JSONResponse(content={"favourite_tracks": fav_tracks}, status_code=200)
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )   
+        mydb_conn = await mydb.get_connection()
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(f"SELECT tracks.id, tracks.name FROM user_fav_tracks JOIN tracks ON tracks.id = user_fav_tracks.track_id WHERE user_fav_tracks.user_id={user_id}")
+        tracks = mycursor.fetchall()
+        mydb_conn.commit()
+        fav_tracks = [{"name": track[1]} for track in tracks]
+        return JSONResponse(content={"favourite_tracks": fav_tracks}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
 
 @app.get("/users/{user_id}/favourite_genres")
 async def get_favourite_genres(user_id: int):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mydb_conn = await mydb.get_connection()
-    mycursor = mydb_conn.cursor()  
-    mycursor.execute(f"SELECT genres.id, genres.name FROM user_fav_genres JOIN genres ON genres.id = user_fav_genres.genre_id WHERE user_fav_genres.user_id={user_id}")
-    genres = mycursor.fetchall()
-    mydb_conn.commit()
-    mydb_conn.close()
-    fav_genres = [{"name": genre[1]} for genre in genres]
-    return JSONResponse(content={"favourite_genres": fav_genres}, status_code=200)
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
+        mycursor = mydb_conn.cursor()  
+        mycursor.execute(f"SELECT genres.id, genres.name FROM user_fav_genres JOIN genres ON genres.id = user_fav_genres.genre_id WHERE user_fav_genres.user_id={user_id}")
+        genres = mycursor.fetchall()
+        mydb_conn.commit()
+        fav_genres = [{"name": genre[1]} for genre in genres]
+        return JSONResponse(content={"favourite_genres": fav_genres}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
 
 
 @app.get("/users/{user_id}/playlists")
