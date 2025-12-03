@@ -495,39 +495,77 @@ async def remove_track_from_playlist(user_id: int, playlist_id: int, track_id: i
 
 @app.get("/artists/{artist_id}")
 async def get_artist(artist_id: int):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mydb_conn = await mydb.get_connection()
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"SELECT name FROM artists WHERE id={artist_id}")
-    artist = mycursor.fetchone()
-    artist = artist[0] if artist else ""
-    mydb_conn.commit()
-    mydb_conn.close()
+    try: 
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(f"SELECT name FROM artists WHERE id={artist_id}")
+        artist = mycursor.fetchone()
+        if not artist:
+            return JSONResponse(content={"error": "Artist not found"}, status_code=404)
+        artist = artist[0] if artist else ""
+        mydb_conn.commit()
+        mydb_conn.close()
 
-    response = get_spotify_data_directly(artist, 'artist', API_CLIENT_ID, API_CLIENT_SECRET)
-    return JSONResponse(content={"artist_data": response}, status_code=200)
+        if not API_CLIENT_ID or not API_CLIENT_SECRET:
+            return JSONResponse(
+                content={"error": "Spotify API credentials are not set"},
+                status_code=500
+            )
+        try: 
+            response = get_spotify_data_directly(artist, 'artist', API_CLIENT_ID, API_CLIENT_SECRET)
+        except Exception as e:
+            return JSONResponse(
+                content={"error": f"Error fetching data from Spotify API: {str(e)}"},
+                status_code=500
+            )
+        return JSONResponse(content={"artist_data": response}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
 
 
 @app.get("/tracks/{track_id}")
 async def get_track(track_id: int):
-    mydb = DatabaseConnection( 
-        host="localhost",
-        user="root",
-        password="root",
-        database="apispotify"
-    )
-    mydb_conn = await mydb.get_connection()
-    mycursor = mydb_conn.cursor()
-    mycursor.execute(f"SELECT name FROM tracks WHERE id={track_id}")
-    track = mycursor.fetchone()
-    track = track[0] if track else ""
-    mydb_conn.commit()
-    mydb_conn.close()
+    try:
+        mydb = DatabaseConnection( 
+            host="localhost",
+            user="root",
+            password="root",
+            database="apispotify"
+        )
+        mydb_conn = await mydb.get_connection()
+        mycursor = mydb_conn.cursor()
+        mycursor.execute(f"SELECT name FROM tracks WHERE id={track_id}")
+        track = mycursor.fetchone()
+        if not track:
+            return JSONResponse(content={"error": "Track not found"}, status_code=404)
+        track = track[0] if track else ""
+        mydb_conn.commit()
+        mydb_conn.close()
+        if not API_CLIENT_ID or not API_CLIENT_SECRET:
+            return JSONResponse(
+                content={"error": "Spotify API credentials are not set"},
+                status_code=500
+            )
 
-    response = get_spotify_data_directly(track, 'track', API_CLIENT_ID, API_CLIENT_SECRET)
-    return JSONResponse(content={"track_data": response}, status_code=200)
+        response = get_spotify_data_directly(track, 'track', API_CLIENT_ID, API_CLIENT_SECRET)
+        return JSONResponse(content={"track_data": response}, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={"error": f"Unexpected error: {str(e)}"},
+            status_code=500
+        )
+    finally:
+        if "mydb_conn" in locals():
+            mydb_conn.close()
